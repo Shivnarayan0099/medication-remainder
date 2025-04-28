@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Medication Reminder Bot</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .chat-container {
+      background: #ffffff;
+      width: 360px;
+      max-width: 90%;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background: #4CAF50;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    .chat-box {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+    }
+    .message {
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+    .user {
+      text-align: right;
+      color: #333;
+    }
+    .bot {
+      text-align: left;
+      color: #4CAF50;
+    }
+    form {
+      display: flex;
+      border-top: 1px solid #ddd;
+      flex-direction: column;
+      padding: 10px;
+      gap: 10px;
+    }
+    form input, form select {
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      outline: none;
+      width: 100%;
+    }
+    form button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    form button:hover {
+      background: #45a049;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="chat-container">
+    <header>
+      <h1>💊 Medication Reminder Bot</h1>
+    </header>
+    <div class="chat-box" id="chatBox"></div>
+
+    <form id="chatForm">
+      <input type="text" id="userInput" placeholder="Type your message..." required />
+      <div class="button-group">
+        <button type="button" onclick="sendMessage()">Ask Bot</button>
+        <button type="button" onclick="setReminder()">Set Reminder</button>
+        <button type="button" onclick="searchMedicine()">Search Medicine</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const apiKey = 'AIzaSyD5b15axv8x05B7-xz6HcMk0DFHc4oIH7o'; // WARNING: Don't expose API keys in real apps!
+    const geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+
+    const userInput = document.getElementById('userInput');
+    const chatBox = document.getElementById('chatBox');
+
+    function addMessage(sender, text) {
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message', sender);
+      messageElement.innerText = text;
+      chatBox.appendChild(messageElement);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function getBotReply(userMessage) {
+      try {
+        const response = await fetch(geminiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{ text: userMessage }]
+            }]
+          })
+        });
+        
+        const data = await response.json();
+        const botText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't find anything.";
+        return botText;
+      } catch (error) {
+        console.error(error);
+        return "Error connecting to server!";
+      }
+    }
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (message === '') return;
+      
+      addMessage('user', message);
+      userInput.value = '';
+      
+      addMessage('bot', 'Typing...');
+      const botReply = await getBotReply(message);
+      updateLastBotMessage(botReply);
+    }
+
+    function setReminder() {
+      const input = userInput.value.trim();
+      if (!input.includes('@')) {
+        alert('Please type in format: MedicineName @Minutes');
+        return;
+      }
+
+      const [medicineName, minutesStr] = input.split('@').map(s => s.trim());
+      const minutes = parseInt(minutesStr);
+
+      if (isNaN(minutes) || minutes <= 0) {
+        alert('Please enter a valid number of minutes.');
+        return;
+      }
+
+      addMessage('user', `Set reminder for ${medicineName} in ${minutes} minutes`);
+      userInput.value = '';
+
+      addMessage('bot', `✅ Reminder set for ${medicineName} in ${minutes} minutes`);
+
+      setTimeout(() => {
+        alert(`💊 Reminder: It's time to take your medicine: ${medicineName}!`);
+        addMessage('bot', `🔔 Reminder: Please take your medicine: ${medicineName}`);
+      }, minutes * 60 * 1000);
+    }
+
+    async function searchMedicine() {
+      const medicine = userInput.value.trim();
+      if (medicine === '') return;
+      
+      addMessage('user', `Search about ${medicine}`);
+      userInput.value = '';
+
+      addMessage('bot', 'Searching...');
+      const question = `What is ${medicine} used for in medicine? Provide a short and simple answer.`;
+      const botReply = await getBotReply(question);
+      updateLastBotMessage(botReply);
+    }
+
+    function updateLastBotMessage(newText) {
+      const botMessages = document.querySelectorAll('.bot');
+      if (botMessages.length > 0) {
+        botMessages[botMessages.length - 1].innerText = newText;
+      }
+    }
+  </script>
+</body>
+</html>
