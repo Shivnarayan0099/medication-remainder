@@ -2,199 +2,188 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Medication Reminder Bot</title>
+  <title>Medicine Reminder Bot</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f2f5;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    .chat-container {
-      background: #ffffff;
-      width: 360px;
-      max-width: 90%;
-      border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      background: #e8f0fe;
+      margin: 0;
+      padding: 0;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      min-height: 100vh;
     }
     header {
-      background: #4CAF50;
+      background: #1a73e8;
       color: white;
-      padding: 15px;
+      padding: 20px;
       text-align: center;
+      font-size: 2rem;
     }
-    .chat-box {
+    #chat-container {
       flex: 1;
-      padding: 15px;
+      padding: 20px;
       overflow-y: auto;
     }
     .message {
-      margin-bottom: 15px;
-      line-height: 1.4;
+      margin: 10px 0;
+      padding: 10px 15px;
+      border-radius: 15px;
+      max-width: 70%;
+      word-wrap: break-word;
+      font-size: 1.1rem;
     }
     .user {
+      background: #c2dbff;
+      align-self: flex-end;
       text-align: right;
-      color: #333;
+      margin-left: auto;
     }
     .bot {
+      background: #ffffff;
+      align-self: flex-start;
       text-align: left;
-      color: #4CAF50;
-    }
-    form {
-      display: flex;
-      border-top: 1px solid #ddd;
-      flex-direction: column;
-      padding: 10px;
-      gap: 10px;
-    }
-    form input, form select {
-      padding: 10px;
+      margin-right: auto;
       border: 1px solid #ccc;
-      border-radius: 5px;
-      outline: none;
-      width: 100%;
     }
-    form button {
-      background: #4CAF50;
+    #input-area {
+      display: flex;
+      padding: 15px;
+      background: #f1f3f4;
+      border-top: 1px solid #ccc;
+    }
+    #user-input {
+      flex: 1;
+      padding: 10px;
+      font-size: 1.1rem;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+    #send-btn {
+      padding: 10px 20px;
+      margin-left: 10px;
+      background: #1a73e8;
+      color: white;
+      font-size: 1.1rem;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    #reminder-form {
+      background: #f9f9f9;
+      padding: 20px;
+      margin: 10px;
+      border-radius: 15px;
+      border: 1px solid #ccc;
+    }
+    #reminder-form input, #reminder-form button {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    #reminder-form button {
+      background: #1a73e8;
       color: white;
       border: none;
-      padding: 10px;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-    form button:hover {
-      background: #45a049;
-    }
-    .button-group {
-      display: flex;
-      gap: 10px;
+      margin-top: 10px;
     }
   </style>
 </head>
-
 <body>
-  <div class="chat-container">
-    <header>
-      <h1>💊 Medication Reminder Bot</h1>
-    </header>
-    <div class="chat-box" id="chatBox"></div>
 
-    <form id="chatForm">
-      <input type="text" id="userInput" placeholder="Type your message..." required />
-      <div class="button-group">
-        <button type="button" onclick="sendMessage()">Ask Bot</button>
-        <button type="button" onclick="setReminder()">Set Reminder</button>
-        <button type="button" onclick="searchMedicine()">Search Medicine</button>
-      </div>
-    </form>
-  </div>
+<header>💊 Medicine Reminder Bot</header>
 
-  <script>
-    const apiKey = 'AIzaSyD5b15axv8x05B7-xz6HcMk0DFHc4oIH7o'; // WARNING: Don't expose API keys in real apps!
-    const geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+<div id="reminder-form">
+  <h3>Set a Medicine Reminder</h3>
+  <input type="text" id="medicine-name" placeholder="Enter Medicine Name" required>
+  <input type="datetime-local" id="reminder-time" required>
+  <button onclick="setReminder()">Set Reminder</button>
+</div>
 
-    const userInput = document.getElementById('userInput');
-    const chatBox = document.getElementById('chatBox');
+<div id="chat-container"></div>
 
-    function addMessage(sender, text) {
-      const messageElement = document.createElement('div');
-      messageElement.classList.add('message', sender);
-      messageElement.innerText = text;
-      chatBox.appendChild(messageElement);
-      chatBox.scrollTop = chatBox.scrollHeight;
+<div id="input-area">
+  <input type="text" id="user-input" placeholder="Ask about any medicine..." />
+  <button id="send-btn" onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+  const chatContainer = document.getElementById('chat-container');
+  const userInput = document.getElementById('user-input');
+
+  const apiKey = 'AIzaSyD5b15axv8x05B7-xz6HcMk0DFHc4oIH7o'; 
+  const geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+
+  function appendMessage(sender, text) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+    messageDiv.textContent = text;
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+  }
+
+  async function sendMessage() {
+    const message = userInput.value.trim();
+    if (message === '') return;
+
+    appendMessage('user', message);
+    userInput.value = '';
+
+    let prompt = '';
+
+    if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi') || message.length <= 3) {
+      prompt = "Respond in a friendly and short way: 'Hello! How can I assist you regarding medicines today?'.";
+    } else {
+      prompt = `Give short and useful information about the medicine '${message}' like its use, precautions, and side effects in maximum 5-6 lines.`;
     }
 
-    async function getBotReply(userMessage) {
-      try {
-        const response = await fetch(geminiEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{ text: userMessage }]
-            }]
-          })
-        });
-        
-        const data = await response.json();
-        const botText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't find anything.";
-        return botText;
-      } catch (error) {
-        console.error(error);
-        return "Error connecting to server!";
-      }
+    const response = await fetch(geminiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+
+    const data = await response.json();
+    const botMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't find information.";
+    appendMessage('bot', botMessage);
+  }
+
+  function setReminder() {
+    const medName = document.getElementById('medicine-name').value.trim();
+    const reminderTime = document.getElementById('reminder-time').value;
+
+    if (medName === '' || reminderTime === '') {
+      alert('Please enter both medicine name and time.');
+      return;
     }
 
-    async function sendMessage() {
-      const message = userInput.value.trim();
-      if (message === '') return;
-      
-      addMessage('user', message);
-      userInput.value = '';
-      
-      addMessage('bot', 'Typing...');
-      const botReply = await getBotReply(message);
-      updateLastBotMessage(botReply);
+    const time = new Date(reminderTime).getTime();
+    const now = new Date().getTime();
+    const delay = time - now;
+
+    if (delay <= 0) {
+      alert('Please select a future time.');
+      return;
     }
 
-    function setReminder() {
-      const input = userInput.value.trim();
-      if (!input.includes('@')) {
-        alert('Please type in format: MedicineName @Minutes');
-        return;
-      }
+    setTimeout(() => {
+      alert(`💊 Reminder: It's time to take your medicine - ${medName}!`);
+      appendMessage('bot', `⏰ Reminder: It's time to take your medicine - **${medName}**!`);
+    }, delay);
 
-      const [medicineName, minutesStr] = input.split('@').map(s => s.trim());
-      const minutes = parseInt(minutesStr);
+    appendMessage('bot', `✅ Reminder set for **${medName}** at ${new Date(reminderTime).toLocaleString()}`);
+    
+    document.getElementById('medicine-name').value = '';
+    document.getElementById('reminder-time').value = '';
+  }
+</script>
 
-      if (isNaN(minutes) || minutes <= 0) {
-        alert('Please enter a valid number of minutes.');
-        return;
-      }
-
-      addMessage('user', `Set reminder for ${medicineName} in ${minutes} minutes`);
-      userInput.value = '';
-
-      addMessage('bot', `✅ Reminder set for ${medicineName} in ${minutes} minutes`);
-
-      setTimeout(() => {
-        alert(`💊 Reminder: It's time to take your medicine: ${medicineName}!`);
-        addMessage('bot', `🔔 Reminder: Please take your medicine: ${medicineName}`);
-      }, minutes * 60 * 1000);
-    }
-
-    async function searchMedicine() {
-      const medicine = userInput.value.trim();
-      if (medicine === '') return;
-      
-      addMessage('user', `Search about ${medicine}`);
-      userInput.value = '';
-
-      addMessage('bot', 'Searching...');
-      const question = `What is ${medicine} used for in medicine? Provide a short and simple answer.`;
-      const botReply = await getBotReply(question);
-      updateLastBotMessage(botReply);
-    }
-
-    function updateLastBotMessage(newText) {
-      const botMessages = document.querySelectorAll('.bot');
-      if (botMessages.length > 0) {
-        botMessages[botMessages.length - 1].innerText = newText;
-      }
-    }
-  </script>
 </body>
 </html>
