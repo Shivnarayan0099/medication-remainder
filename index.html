@@ -24,6 +24,8 @@
       flex: 1;
       padding: 20px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
     }
     .message {
       margin: 10px 0;
@@ -59,7 +61,7 @@
       border-radius: 10px;
       border: 1px solid #ccc;
     }
-    #send-btn {
+    #send-btn, #mic-btn {
       padding: 10px 20px;
       margin-left: 10px;
       background: #1a73e8;
@@ -90,6 +92,11 @@
       border: none;
       margin-top: 10px;
     }
+    #typing-indicator {
+      font-style: italic;
+      color: gray;
+      margin: 10px;
+    }
   </style>
 </head>
 <body>
@@ -104,15 +111,18 @@
 </div>
 
 <div id="chat-container"></div>
+<div id="typing-indicator" style="display:none;">Bot is typing...</div>
 
 <div id="input-area">
   <input type="text" id="user-input" placeholder="Ask about any medicine..." />
+  <button id="mic-btn" onclick="startListening()">🎤</button>
   <button id="send-btn" onclick="sendMessage()">Send</button>
 </div>
 
 <script>
   const chatContainer = document.getElementById('chat-container');
   const userInput = document.getElementById('user-input');
+  const typingIndicator = document.getElementById('typing-indicator');
 
   const apiKey = 'AIzaSyD5b15axv8x05B7-xz6HcMk0DFHc4oIH7o'; 
   const geminiEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
@@ -120,7 +130,7 @@
   function appendMessage(sender, text) {
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message', sender);
-    messageDiv.textContent = text;
+    messageDiv.innerHTML = text;
     chatContainer.appendChild(messageDiv);
     chatContainer.scrollTop = chatContainer.scrollHeight;
   }
@@ -131,6 +141,8 @@
 
     appendMessage('user', message);
     userInput.value = '';
+
+    typingIndicator.style.display = 'block';
 
     let prompt = '';
 
@@ -151,8 +163,10 @@
     });
 
     const data = await response.json();
+    typingIndicator.style.display = 'none';
+
     const botMessage = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sorry, I couldn't find information.";
-    appendMessage('bot', botMessage);
+    appendMessage('bot', botMessage.replace(/\n/g, '<br>'));
   }
 
   function setReminder() {
@@ -175,13 +189,28 @@
 
     setTimeout(() => {
       alert(`💊 Reminder: It's time to take your medicine - ${medName}!`);
-      appendMessage('bot', `⏰ Reminder: It's time to take your medicine - **${medName}**!`);
+      appendMessage('bot', `⏰ Reminder: It's time to take your medicine - <b>${medName}</b>!`);
     }, delay);
 
-    appendMessage('bot', `✅ Reminder set for **${medName}** at ${new Date(reminderTime).toLocaleString()}`);
+    appendMessage('bot', `✅ Reminder set for <b>${medName}</b> at ${new Date(reminderTime).toLocaleString()}`);
     
     document.getElementById('medicine-name').value = '';
     document.getElementById('reminder-time').value = '';
+  }
+
+  function startListening() {
+    if (!('webkitSpeechRecognition' in window)) {
+      alert('Voice recognition not supported in this browser.');
+      return;
+    }
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.start();
+
+    recognition.onresult = function(event) {
+      const transcript = event.results[0][0].transcript;
+      userInput.value = transcript;
+    };
   }
 </script>
 
